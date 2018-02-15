@@ -1,0 +1,29 @@
+{
+  "name": "device-registry",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "node_modules/.bin/esw --fix api test/endpointTest",
+    "lint:watch": "npm run lint -- --watch",
+    "test": "mocha --reporter spec \"test/endpointTest/*.test.js\"",
+    "deploy": "sls deploy",
+    "remove": "sls remove"
+  },
+  "author": "GFarming",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.84.0",
+    "bcryptjs": "^2.4.3",
+    "bluebird": "^3.5.0",
+    "uuid": "^3.1.0",
+    "serverless-dynamodb-local": "^0.2.18",
+    "serverless-offline": "^3.8.3"
+  },
+  "devDependencies": {
+    "eslint": "^4.2.0",
+    "mocha": "^3.4.2",
+    "request": "^2.81.0",
+    "should": "^11.2.1"
+  }
+}

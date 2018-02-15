@@ -1,0 +1,260 @@
+service: device-registry
+
+# service deployable only with a specific Serverless version
+frameworkVersion: ">=1.1.0 <2.0.0"
+
+plugins:
+  - serverless-dynamodb-local
+  - serverless-offline
+
+# https://github.com/99xt/serverless-dynamodb-local
+custom:
+  dynamodb:
+    start:
+      port: 9876
+      inMemory: true
+      migrate: true
+  serverless-offline:
+    port: 4000
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  stage: dev
+  region: ${self:provider.environment.REGION}
+  deletionPolicy: Delete # Retain
+  environment:
+    USER_TABLE: "user-table-${opt:stage, self:provider.stage}"
+    DEVICE_TABLE: "device-table-${opt:stage, self:provider.stage}"
+    CONTROLLER_TABLE: "controller-table-${opt:stage, self:provider.stage}"
+    REGION: eu-central-1
+    DYNAMODB_ENDPOINT: "https://dynamodb.eu-central-1.amazonaws.com"
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+      Resource: "*"
+
+functions:
+  # Service for Users
+  registerUser:
+    handler: api/users.registerUser
+    memorySize: 128
+    description: register an user
+    events:
+      - http:
+          path: /users
+          method: post
+  authenticate:
+    handler: api/users.authenticate
+    memorySize: 128
+    description: authenticate an user
+    events:
+      - http:
+          path: /users/authenticate
+          method: get
+  getUsersByEmail:
+    handler: api/users.getUsersByEmail
+    memorySize: 128
+    description: get information about an user
+    events:
+      - http:
+          path: /users/email/{email}
+          method: get
+  getUsersByPhoneNumber:
+    handler: api/users.getUsersByPhoneNumber
+    memorySize: 128
+    description: get information about an user
+    events:
+      - http:
+          path: /users/phoneNumber/{phone_number}
+          method: get
+  updateUser:
+    handler: api/users.updateUser
+    memorySize: 128
+    description: get information about an user
+    events:
+      - http:
+          path: /users/
+          method: put
+  # Service for Devices
+  registerDevice:
+    handler: api/devices.registerDevice
+    memorySize: 128
+    description: Submit candidate information and starts interview process.
+    events:
+      - http:
+          path: /devices
+          method: post
+  getDeviceById:
+    handler: api/devices.getDeviceById
+    memorySize: 128
+    description: Submit candidate information and starts interview process.
+    events:
+      - http:
+          path: /devices/{device_id}
+          method: get
+  assignDeviceToController:
+    handler: api/devices.assignDeviceToController
+    memorySize: 128
+    description: Update device's controller
+    events:
+      - http:
+          path: /devices/{device_id}/controller/{controller_id}
+          method: put
+  assignDeviceToUser:
+    handler: api/devices.assignDeviceToUser
+    memorySize: 128
+    description: Update device's user
+    events:
+      - http:
+          path: /devices/{device_id}/user/{owner_id}
+          method: put
+  getDevicesForController:
+    handler: api/devices.getDevicesForController
+    memorySize: 128
+    description: Get a list of devices managed by given controller
+    events:
+      - http:
+          path: /devices/controller/{controller_id}
+          method: get
+  getDevicesForUser:
+    handler: api/devices.getDevicesForUser
+    memorySize: 128
+    description: Get a list of devices owned by given user
+    events:
+      - http:
+          path: /devices/user/{owner_id}
+          method: get
+  # Service for Controller
+  registerController:
+    handler: api/controllers.register
+    memorySize: 128
+    description: Create a controller with given ip address
+    events:
+      - http:
+          path: /controllers
+          method: post
+  getControllerById:
+    handler: api/controllers.getControllerById
+    memorySize: 128
+    description: Get controller information
+    events:
+      - http:
+          path: /controllers/{controller_id}
+          method: get
+  updateController:
+    handler: api/controllers.updateController
+    memorySize: 128
+    description: update controller configuations i.e ipv4 address
+    events:
+      - http:
+          path: /controllers/{controller_id}
+          method: put
+  listControllers:
+    handler: api/controllers.listControllers
+    memorySize: 128
+    description: list all available controller
+    events:
+      - http:
+          path: /controllers
+          method: get
+
+resources:
+  Resources:
+    usersTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: ${self:provider.deletionPolicy}
+      Properties:
+        TableName: ${self:provider.environment.USER_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id       #username
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+          - AttributeName: phone_number
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        GlobalSecondaryIndexes:
+          # Support querying by email
+          - IndexName: email-index
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          # Support querying by phone number
+          - IndexName: phone-number-index
+            KeySchema:
+              - AttributeName: phone_number
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+    controllerTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: ${self:provider.deletionPolicy}
+      Properties:
+        TableName: ${self:provider.environment.CONTROLLER_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    deviceTable:
+      Type: AWS::DynamoDB::Table
+      DeletionPolicy: ${self:provider.deletionPolicy}
+      Properties:
+        TableName: ${self:provider.environment.DEVICE_TABLE}
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: controller_id
+            AttributeType: S
+          - AttributeName: owner_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        GlobalSecondaryIndexes:
+          # Support quering by Controller
+          - IndexName: controller-id-index
+            KeySchema:
+              - AttributeName: controller_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
+          # Support querying by User
+          - IndexName: user-id-index
+            KeySchema:
+              - AttributeName: owner_id
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1

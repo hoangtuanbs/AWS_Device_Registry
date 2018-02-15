@@ -1,0 +1,19 @@
+<html>
+<head>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script>
+        var apiUrl = "https://r534ong1a6.execute-api.eu-central-1.amazonaws.com/dev/users/hoangbean";
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            dataType: 'json',
+            headers: { 'GFarming': 'MY_CUSTOM_HEADER_VALUE' },
+            success: function (data) { console.log(JSON.stringify(data, null, 2)); },
+            error: function (error, textStatus, errorThrown) { console.error(textStatus) }
+        })
+    </script>
+</body>
+
+</html>

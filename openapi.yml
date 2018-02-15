@@ -1,0 +1,102 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: GFarming Device Registry
+  description: Api that manages users, devices, and connection between devices and controllers
+  termsOfService: http://swagger.io/terms/
+  contact:
+    name: Nguyen Hai Dang
+    email: nguyen.h.dang.1001@gmail.com
+  license:
+    name: GFARMING
+    url: http://www.gfarming.com/
+servers:
+  - url: https://vb5qlrcrj4.execute-api.eu-central-1.amazonaws.com/dev/users
+    description: development server
+  - url: https://nonexist.com
+    description: production server
+paths:
+  /users:
+    post:
+      description: Register a new user
+      summary: Register user
+      operationId: registerUser
+      requestBody:
+        description: user information
+        required: true
+        content:
+          application/json:
+            schemas:
+              $ref: "#/components/schemas/NewUser"
+            examples:
+              user1:
+                id: dangng
+                password: asimplepassword
+                first_name: Dang
+                last_name: Nguyen
+                phone_number: 0465672648
+                email: nguyen.h.dang.1001@gmail.com
+              user2:
+                id: hoangcuteo
+                password: asimplepassword
+                first_name: Hoang
+                last_name: Sy
+      responses:
+        200:
+          description: register successful
+          headers:
+            HEADER_NAME:
+              desciption: header definition
+              schema:
+                type: integer
+            HEADER_NAME_02:
+              description: another header definition
+              schema:
+                type: string
+          links:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    NewUser:
+
+    NewPet:
+      required:
+        - id
+        - first_name
+        - last_name
+        - password
+      properties:
+        id:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        password:
+          type: string
+          format: password
+        email:
+          type: string
+        phone_number:
+          type: string
+    User:
+    Error:
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
